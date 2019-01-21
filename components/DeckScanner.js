@@ -29,7 +29,7 @@ export default class DeckScanner extends React.Component {
   }
 
   takePicture = async () => {
-    if (this.camera) {
+    if (this.camera && this.state.deckQrCode) {
       if (this.state.hasTakenPhoto) { return }
       this.setState({ hasTakenPhoto: true })
 
@@ -139,16 +139,28 @@ export default class DeckScanner extends React.Component {
 
     return (
       <View style={{flex: 1}}>
-        <Camera ref={ref => { this.camera = ref }} style={{flex: 1}} type={Camera.Constants.Type.back} onBarCodeScanned={this.scannedBarcode}>
+        <Camera
+          ref={ref => { this.camera = ref }}
+          style={{flex: 1}}
+          type={Camera.Constants.Type.back}
+          onBarCodeScanned={this.scannedBarcode}
+        >
           <TouchableOpacity
             style={{flex: 1}}
             onPress={this.takePicture}>
             <View style={{flex: 3}}>
               <CameraOverlay/>
             </View>
-            <Text style={{fontSize: 30, color: 'white', textAlign: 'center', flex: 1}}>
-              Tap to take picture
-            </Text>
+            {this.state.deckQrCode &&
+              <Text style={{fontSize: 30, color: 'white', textAlign: 'center', flex: 1}}>
+                Tap to take picture
+              </Text>
+            }
+            {!this.state.deckQrCode &&
+              <Text style={{fontSize: 30, color: 'white', textAlign: 'center', flex: 1}}>
+                Scanning for QR Code
+              </Text>
+            }
           </TouchableOpacity>
         </Camera>
       </View>
