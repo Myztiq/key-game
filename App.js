@@ -9,8 +9,6 @@ import Login from './components/Login'
 import secrets from './.secrets'
 import ApiClient from './lib/ApiClient'
 
-const apiBaseUrl = secrets.apiBaseUrl
-
 export default class App extends React.Component {
   state = {
       scanning: false,
@@ -19,6 +17,22 @@ export default class App extends React.Component {
 
       user: null,
       googleIdToken: null
+  }
+
+  apiClient = new ApiClient
+
+  async componentDidUpdate (prevProps, prevState, snapshot) {
+    if (this.state.user !== prevState.user && this.state.googleIdToken !== prevState.googleIdToken) {
+      if (this.state.user && this.state.googleIdToken) {
+        await SecureStore.setItemAsync('googleIdToken', this.state.googleIdToken);
+        await SecureStore.setItemAsync('user', JSON.stringify(this.state.user));
+        this.apiClient.login({ userEmail: this.state.user.email, googleIdToken: this.state.googleIdToken })
+
+      } else {
+        await SecureStore.deleteItemAsync('googleIdToken');
+        await SecureStore.deleteItemAsync('user');
+      }
+    }
   }
 
   async componentDidMount () {
@@ -30,7 +44,6 @@ export default class App extends React.Component {
         user: JSON.parse(user)
       })
     }
-    this.apiClient = new ApiClient({userEmail: this.state.user.email, googleIdToken: this.state.googleIdToken})
   }
 
   signInWithGoogleAsync = async () => {
@@ -43,9 +56,6 @@ export default class App extends React.Component {
 
 
       if (result.type === 'success') {
-        await SecureStore.setItemAsync('googleIdToken', result.idToken);
-        await SecureStore.setItemAsync('user', JSON.stringify(result.user));
-
         const loginState = {user: result.user, googleIdToken: result.idToken}
         console.log('Setting Login State', result)
         this.setState(loginState)
@@ -88,7 +98,7 @@ export default class App extends React.Component {
       if (deckSearchResults && deckSearchResults.id) {
         console.log('Deck was found!', deckSearchResults)
         deckId = `${deckSearchResults.name}#${deckSearchResults.id}`
-        await this.apiClient.post(`${apiBaseUrl}/decks/`, {
+        await this.apiClient.post('decks', {
           qrCode: deckQRCode,
           uuid: deckSearchResults.id,
           name: deckSearchResults.name,
@@ -127,7 +137,7 @@ export default class App extends React.Component {
     return <Button
       onPress={this.scanYourDeck}
       title="Scan Your Deck"
-      color="#841584"
+      style={styles.selection}
     />
   }
 
@@ -138,8 +148,13 @@ export default class App extends React.Component {
     return <Button
       onPress={this.scanOpponentsDeck}
       title="Scan Opponents Deck"
-      color="#841584"
+      style={styles.selection}
     />
+  }
+
+  logout = () => {
+    this.apiClient.logout()
+    this.setState({user: null, googleIdToken: null})
   }
 
   render() {
@@ -161,22 +176,30 @@ export default class App extends React.Component {
 
     return (
       <View style={styles.container}>
-        {this.renderYourDeck()}
-        {this.renderOpponentsDeck()}
+        <View style={styles.panel}>
+          {this.renderYourDeck()}
+          {this.renderOpponentsDeck()}
+        </View>
         {this.state.opponentsDeck && this.state.yourDeck &&
-          <View>
+          <View style={styles.panel}>
             <Button
               onPress={this.pickWinner('me')}
               title="I Won"
-              color="#841584"
+              style={styles.selection}
             />
             <Button
               onPress={this.pickWinner('them')}
               title="I Lost"
-              color="#841584"
+              style={styles.selection}
             />
           </View>
         }
+        <Button
+          // style={{flex: 1}}
+          onPress={this.logout}
+          title="LOG OUT"
+          color="red"
+        />
       </View>
     );
   }
@@ -186,7 +209,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
   },
+  panel: {
+    flex: 0.5,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  selection: {
+    color: '#841584'
+  }
 });
