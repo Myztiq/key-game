@@ -65,6 +65,7 @@ export default class DeckScanner extends React.Component {
         console.log('deckname', deckName)
 
         if (deckName) {
+          this.setState({deckName})
           this.props.onRead({deckName})
         } else {
           this.reset()
@@ -101,13 +102,14 @@ export default class DeckScanner extends React.Component {
         <View style={{flex: 1, justifyContent: 'center'}}>
           <ActivityIndicator size="large" color="#0000ff"/>
           <Text style={{margin: '10%', fontSize: 30, textAlign: 'center'}}>
-            Attempting to locate deck within the Master Vault...
+            {this.state.deckName ? `Attempting to locate "${this.state.deckName}" within the Master Vault...` : `Attempting to read deck name...`}
           </Text>
 
           <View style={{margin: '10%', textAlign: 'center'}}>
             <Text>Deck Title:</Text>
 
             <Image source={{uri: this.state.photo}} style={{width: '100%', height: 100}} />
+            <Text>{this.state.deckName}</Text>
           </View>
         </View>
       )
