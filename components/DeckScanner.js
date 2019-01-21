@@ -1,7 +1,9 @@
-import React from 'react';
-import { TouchableOpacity, Text, View, Image, Vibration } from 'react-native';
+import React from 'react'
+import { TouchableOpacity, Text, View, Image, Vibration } from 'react-native'
 
 import { Camera, Permissions, FileSystem, ImageManipulator } from 'expo'
+import CameraOverlay from './CameraOverlay'
+
 const apiKey = 'a0a0ed9cba88957'
 
 export default class DeckScanner extends React.Component {
@@ -97,22 +99,16 @@ export default class DeckScanner extends React.Component {
     }
 
     return (
-      <View style={{ flex: 1 }}>
-        <Camera onClick={this.takePicture} ref={ref => { this.camera = ref; }} style={{ flex: 1 }} type={Camera.Constants.Type.back}>
+      <View style={{flex: 1}}>
+        <Camera ref={ref => { this.camera = ref }} style={{flex: 1}} type={Camera.Constants.Type.back}>
           <TouchableOpacity
-            style={{
-              flex: 0.1,
-              alignItems: 'center',
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              opacity: 0.3
-            }}
+            style={{flex: 1}}
             onPress={this.takePicture}>
-            <Text style={{ fontSize: 18, marginBottom: 10, color: 'white' }}>
-              Touch to take picture
+            <View style={{flex: 3}}>
+              <CameraOverlay/>
+            </View>
+            <Text style={{fontSize: 30, color: 'white', textAlign: 'center', flex: 1}}>
+              Tap to take picture
             </Text>
           </TouchableOpacity>
         </Camera>
