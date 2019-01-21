@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, Vibration } from 'react-native';
-import {Google} from 'expo';
+import {Google, SecureStore} from 'expo';
 import { Button } from 'react-native';
 import DeckScanner from './components/DeckScanner'
 import searchForDeckByName from './lib/searchForDeckByName'
@@ -19,6 +19,17 @@ export default class App extends React.Component {
       googleAccessToken: null
   }
 
+  async componentDidMount () {
+    const googleAccessToken = await SecureStore.getItemAsync('googleAccessToken')
+    const user = await SecureStore.getItemAsync('user')
+    if (googleAccessToken && user) {
+      this.setState({
+        googleAccessToken,
+        user: JSON.parse(user)
+      })
+    }
+  }
+
   signInWithGoogleAsync = async () => {
     try {
       const result = await Google.logInAsync({
@@ -27,7 +38,11 @@ export default class App extends React.Component {
         scopes: ['profile', 'email'],
       });
 
+
       if (result.type === 'success') {
+        await SecureStore.setItemAsync('googleAccessToken', result.accessToken);
+        await SecureStore.setItemAsync('user', JSON.stringify(result.user));
+
         const loginState = {user: result.user, googleAccessToken: result.accessToken}
         console.log('Setting Login State', loginState)
         this.setState(loginState)
