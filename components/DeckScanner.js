@@ -3,6 +3,7 @@ import { TouchableOpacity, Text, View, Image, Vibration, ActivityIndicator } fro
 
 import { Camera, Permissions, FileSystem, ImageManipulator } from 'expo'
 import CameraOverlay from './CameraOverlay'
+import findDeckFromQrCode from '../lib/findDeckFromQrCode'
 
 const apiKey = 'a0a0ed9cba88957'
 
@@ -10,12 +11,21 @@ export default class DeckScanner extends React.Component {
   state = {
     hasCameraPermission: null,
     hasTakenPhoto: false,
-    photo: null
+    photo: null,
+    deckQrCode: null,
   }
 
   async componentDidMount() {
     const { status } = await Permissions.askAsync(Permissions.CAMERA);
     this.setState({ hasCameraPermission: status === 'granted' });
+  }
+
+  scannedBarcode = (barcodeObject) => {
+    const deckQrCode = barcodeObject.data.split('/').pop()
+    console.log('Found QR code', deckQrCode)
+    this.setState({
+      deckQrCode
+    })
   }
 
   takePicture = async () => {
@@ -29,6 +39,18 @@ export default class DeckScanner extends React.Component {
           quality: 0.1,
         });
         console.log(photo.height, photo.width, photo.uri)
+
+        // Check if deck by ID already exists
+        if (this.state.deckQrCode) {
+          console.log('Check if deck already exists', this.state.deckQrCode)
+          const deck = await findDeckFromQrCode(this.state.deckQrCode)
+          console.log('Found deck')
+          if (deck) {
+            this.props.onRead({ deckName: deck.name, deckUUID: deck.uuid })
+            return
+          }
+        }
+
 
         const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [
           {crop: {originX: 0, originY: 200, height: 500, width: photo.width}},
@@ -117,7 +139,7 @@ export default class DeckScanner extends React.Component {
 
     return (
       <View style={{flex: 1}}>
-        <Camera ref={ref => { this.camera = ref }} style={{flex: 1}} type={Camera.Constants.Type.back}>
+        <Camera ref={ref => { this.camera = ref }} style={{flex: 1}} type={Camera.Constants.Type.back} onBarCodeScanned={this.scannedBarcode}>
           <TouchableOpacity
             style={{flex: 1}}
             onPress={this.takePicture}>

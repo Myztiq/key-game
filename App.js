@@ -32,20 +32,27 @@ export default class App extends React.Component {
     const newState = {
       scanning: false
     }
+    let deckId = null
+    if (data.deckUUID) {
+      deckId = `${data.deckName}#${data.deckUUID}`
+    } else {
+      const deckSearchResults = await searchForDeckByName(data.deckName)
+      if (deckSearchResults && deckSearchResults.id) {
+        console.log('Deck was found!', deckSearchResults)
+        deckId = `${deckSearchResults.name}#${deckSearchResults.id}`
+      }
+    }
 
-    const deckSearchResults = await searchForDeckByName(data.deckName)
-
-    if (deckSearchResults && deckSearchResults.id) {
-      console.log('Deck was found!', deckSearchResults)
-      const deckId = `${deckSearchResults.name}#${deckSearchResults.id}`
+    if (deckId) {
       if (this.state.scanning === 'mine') {
         newState.yourDeck = deckId;
       } else {
         newState.opponentsDeck = deckId;
       }
+      this.setState(newState)
+    } else {
+      // TODO: Handle case where we couldn't find deck by name or QR code.
     }
-
-    this.setState(newState)
   }
 
   pickWinner = (winner) => {
