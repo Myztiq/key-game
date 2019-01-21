@@ -31,7 +31,7 @@ export default class DeckScanner extends React.Component {
         console.log(photo.height, photo.width, photo.uri)
 
         const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [
-          {crop: {originX: 0, originY: 200, height: 600, width: photo.width}},
+          {crop: {originX: 0, originY: 200, height: 500, width: photo.width}},
           {resize: {width: 400}},
         ], {
           format: 'png',
