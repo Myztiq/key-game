@@ -1,8 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Vibration } from 'react-native';
 import {Google} from 'expo';
 import { Button } from 'react-native';
-import QRScanner from './components/QRScanner'
 import DeckScanner from './components/DeckScanner'
 import searchForDeckByName from './lib/searchForDeckByName'
 import Login from './components/Login'
@@ -70,6 +69,7 @@ export default class App extends React.Component {
     }
 
     if (deckId) {
+      Vibration.vibrate(0.5);
       if (this.state.scanning === 'mine') {
         newState.yourDeck = deckId;
       } else {

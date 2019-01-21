@@ -1,5 +1,5 @@
 import React from 'react'
-import { ActivityIndicator, Image, Text, TouchableOpacity, Vibration, View } from 'react-native'
+import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native'
 
 import { Camera, ImageManipulator, Permissions } from 'expo'
 import CameraOverlay from './CameraOverlay'
@@ -33,68 +33,73 @@ export default class DeckScanner extends React.Component {
     const deck = await findDeckFromQrCode(this.props.apiClient, this.state.deckQrCode)
     if (deck) {
       console.log('Found deck')
-      this.props.onRead({ deckName: deck.name, deckUUID: deck.uuid })
-      return
+      this.props.onRead({
+        deckName: deck.name,
+        deckUUID: deck.uuid,
+        deckQRCode: this.state.deckQrCode
+      })
     }
   }
 
   takePicture = async () => {
-    if (this.camera && this.state.deckQrCode) {
-      if (this.state.hasTakenPhoto) { return }
-      this.setState({ hasTakenPhoto: true })
+    if (!this.camera || !this.state.deckQrCode) {
+      return
+    }
+    if (this.state.hasTakenPhoto) { return }
+    this.setState({ hasTakenPhoto: true })
 
-      try {
-        let photo = await this.camera.takePictureAsync({
-          base64: true,
-          quality: 0.1,
-        });
-        console.log(photo.height, photo.width, photo.uri)
+    try {
+      let photo = await this.camera.takePictureAsync({
+        base64: true,
+        quality: 0.1,
+      });
+      console.log(photo.height, photo.width, photo.uri)
 
-        const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [
-          {crop: {originX: 0, originY: 200, height: 500, width: photo.width}},
-          {resize: {width: 400}},
-        ], {
-          format: 'png',
-          base64: true
+      const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [
+        {crop: {originX: 0, originY: 200, height: 500, width: photo.width}},
+        {resize: {width: 400}},
+      ], {
+        format: 'png',
+        base64: true
+      })
+
+      this.setState({
+        photo: newPhoto.uri
+      })
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: newPhoto.uri,
+        type: 'png',
+        name: 'hello.png'
+      })
+      formData.append('filetype', 'png')
+      formData.append('scale', 'true')
+      const response = await fetch('https://api.ocr.space/parse/image', {
+        method: 'post',
+        headers: {
+          apikey: secrets.ocrApiKey
+        },
+        body: formData
+      })
+      const data = await response.json()
+      console.log('Got Response')
+      console.log('data', data)
+
+      let deckName = data.ParsedResults.length && data.ParsedResults[0].ParsedText.split(/\n/)[0].trim()
+      console.log('deckname', deckName)
+
+      if (deckName) {
+        this.setState({deckName})
+        this.props.onRead({
+          deckName,
+          deckQRCode: this.state.deckQrCode
         })
-
-        this.setState({
-          photo: newPhoto.uri
-        })
-
-        const formData = new FormData();
-        formData.append('file', {
-          uri: newPhoto.uri,
-          type: 'png',
-          name: 'hello.png'
-        })
-        formData.append('filetype', 'png')
-        formData.append('scale', 'true')
-        const response = await fetch('https://api.ocr.space/parse/image', {
-          method: 'post',
-          headers: {
-            apikey: secrets.ocrApiKey
-          },
-          body: formData
-        })
-        const data = await response.json()
-        console.log('Got Response')
-        console.log('data', data)
-
-        let deckName = data.ParsedResults.length && data.ParsedResults[0].ParsedText.split(/\n/)[0].trim()
-        console.log('deckname', deckName)
-
-        if (deckName) {
-          this.setState({deckName})
-          this.props.onRead({deckName})
-        } else {
-          this.reset()
-        }
-
-        Vibration.vibrate(0.5);
-      } catch (e) {
-        console.log('ERR', e)
+      } else {
+        this.reset()
       }
+    } catch (e) {
+      console.log('ERR', e)
     }
   }
 
