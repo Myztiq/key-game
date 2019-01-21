@@ -19,7 +19,7 @@ export default class DeckScanner extends React.Component {
     this.setState({ hasCameraPermission: status === 'granted' });
   }
 
-  scannedBarcode = (barcodeObject) => {
+  scannedBarcode = async (barcodeObject) => {
     if (this.state.deckQrCode) { return }
 
     const deckQrCode = barcodeObject.data.split('/').pop()
@@ -27,6 +27,15 @@ export default class DeckScanner extends React.Component {
     this.setState({
       deckQrCode
     })
+
+    // Check if deck by ID already exists
+    console.log('Check if deck already exists', this.state.deckQrCode)
+    const deck = await findDeckFromQrCode(this.props.apiClient, this.state.deckQrCode)
+    if (deck) {
+      console.log('Found deck')
+      this.props.onRead({ deckName: deck.name, deckUUID: deck.uuid })
+      return
+    }
   }
 
   takePicture = async () => {
@@ -40,18 +49,6 @@ export default class DeckScanner extends React.Component {
           quality: 0.1,
         });
         console.log(photo.height, photo.width, photo.uri)
-
-        // Check if deck by ID already exists
-        if (this.state.deckQrCode) {
-          console.log('Check if deck already exists', this.state.deckQrCode)
-          const deck = await findDeckFromQrCode(this.props.apiClient, this.state.deckQrCode)
-          console.log('Found deck')
-          if (deck) {
-            this.props.onRead({ deckName: deck.name, deckUUID: deck.uuid })
-            return
-          }
-        }
-
 
         const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [
           {crop: {originX: 0, originY: 200, height: 500, width: photo.width}},

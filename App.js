@@ -57,6 +57,7 @@ export default class App extends React.Component {
     const newState = {
       scanning: false
     }
+
     let deckId = null
     if (data.deckUUID) {
       deckId = `${data.deckName}#${data.deckUUID}`
@@ -74,10 +75,11 @@ export default class App extends React.Component {
       } else {
         newState.opponentsDeck = deckId;
       }
-      this.setState(newState)
     } else {
       // TODO: Handle case where we couldn't find deck by name or QR code.
     }
+
+    this.setState(newState)
   }
 
   pickWinner = (winner) => {
@@ -123,6 +125,7 @@ export default class App extends React.Component {
 
     if (this.state.scanning) {
       return <DeckScanner
+        key={Math.random()}
         apiClient={new ApiClient({userEmail: this.state.user.email, googleAccessToken: this.state.googleAccessToken})}
         onRead={this.scanComplete}
       />
