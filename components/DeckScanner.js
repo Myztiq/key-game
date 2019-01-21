@@ -6,6 +6,8 @@ import CameraOverlay from './CameraOverlay'
 import findDeckFromQrCode from '../lib/findDeckFromQrCode'
 import secrets from '../.secrets'
 
+const BYPASS_OCR = true;
+
 export default class DeckScanner extends React.Component {
   state = {
     hasCameraPermission: null,
@@ -20,6 +22,7 @@ export default class DeckScanner extends React.Component {
   }
 
   scannedBarcode = async (barcodeObject) => {
+    console.log('Scanned barcode?', barcodeObject)
     if (this.state.deckQrCode) { return }
 
     const deckQrCode = barcodeObject.data.split('/').pop()
@@ -45,6 +48,7 @@ export default class DeckScanner extends React.Component {
     if (!this.camera || !this.state.deckQrCode) {
       return
     }
+
     if (this.state.hasTakenPhoto) { return }
     this.setState({ hasTakenPhoto: true })
 
@@ -67,33 +71,37 @@ export default class DeckScanner extends React.Component {
         photo: newPhoto.uri
       })
 
-      const formData = new FormData();
-      formData.append('file', {
-        uri: newPhoto.uri,
-        type: 'png',
-        name: 'hello.png'
-      })
-      formData.append('filetype', 'png')
-      formData.append('scale', 'true')
-      const response = await fetch('https://api.ocr.space/parse/image', {
-        method: 'post',
-        headers: {
-          apikey: secrets.ocrApiKey
-        },
-        body: formData
-      })
-      const data = await response.json()
-      console.log('Got Response')
-      console.log('data', data)
+      let deckName = 'King of Westworth'
+      if (!BYPASS_OCR) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: newPhoto.uri,
+          type: 'png',
+          name: 'hello.png'
+        })
+        formData.append('filetype', 'png')
+        formData.append('scale', 'true')
+        console.log('Calling OCR parse on image.')
+        const response = await fetch('https://api.ocr.space/parse/image', {
+          method: 'post',
+          headers: {
+            apikey: secrets.ocrApiKey
+          },
+          body: formData
+        })
+        const data = await response.json()
+        console.log('Got Response')
+        console.log('data', data)
 
-      let deckName = data.ParsedResults.length && data.ParsedResults[0].ParsedText.split(/\n/)[0].trim()
-      console.log('deckname', deckName)
+        deckName = data.ParsedResults.length && data.ParsedResults[0].ParsedText.split(/\n/)[0].trim()
+        console.log('deckname', deckName)
+      }
 
       if (deckName) {
         this.setState({deckName})
         this.props.onRead({
           deckName,
-          deckQRCode: this.state.deckQrCode
+          deckQRCode: this.state.deckQrCode,
         })
       } else {
         this.reset()

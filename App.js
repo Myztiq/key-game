@@ -9,6 +9,8 @@ import Login from './components/Login'
 import secrets from './.secrets'
 import ApiClient from './lib/ApiClient'
 
+const apiBaseUrl = secrets.apiBaseUrl
+
 export default class App extends React.Component {
   state = {
       scanning: false,
@@ -28,6 +30,7 @@ export default class App extends React.Component {
         user: JSON.parse(user)
       })
     }
+    this.apiClient = new ApiClient({userEmail: this.state.user.email, googleIdToken: this.state.googleIdToken})
   }
 
   signInWithGoogleAsync = async () => {
@@ -68,18 +71,28 @@ export default class App extends React.Component {
 
   scanComplete = async (data) => {
     console.log('Scan complete', data)
+    const {
+      deckName,
+      deckQRCode,
+      deckUUID
+    } = data;
     const newState = {
       scanning: false
     }
 
     let deckId = null
-    if (data.deckUUID) {
-      deckId = `${data.deckName}#${data.deckUUID}`
+    if (deckUUID) {
+      deckId = `${deckName}#${deckUUID}`
     } else {
-      const deckSearchResults = await searchForDeckByName(data.deckName)
+      const deckSearchResults = await searchForDeckByName(deckName)
       if (deckSearchResults && deckSearchResults.id) {
         console.log('Deck was found!', deckSearchResults)
         deckId = `${deckSearchResults.name}#${deckSearchResults.id}`
+        await this.apiClient.post(`${apiBaseUrl}/decks/`, {
+          qrCode: deckQRCode,
+          uuid: deckSearchResults.id,
+          name: deckSearchResults.name,
+        })
       }
     }
 
@@ -141,7 +154,7 @@ export default class App extends React.Component {
     if (this.state.scanning) {
       return <DeckScanner
         key={Math.random()}
-        apiClient={new ApiClient({userEmail: this.state.user.email, googleIdToken: this.state.googleIdToken})}
+        apiClient={this.apiClient}
         onRead={this.scanComplete}
       />
     }
