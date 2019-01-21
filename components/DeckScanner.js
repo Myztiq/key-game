@@ -1,5 +1,5 @@
 import React from 'react'
-import { TouchableOpacity, Text, View, Image, Vibration } from 'react-native'
+import { TouchableOpacity, Text, View, Image, Vibration, ActivityIndicator } from 'react-native'
 
 import { Camera, Permissions, FileSystem, ImageManipulator } from 'expo'
 import CameraOverlay from './CameraOverlay'
@@ -30,8 +30,10 @@ export default class DeckScanner extends React.Component {
         });
         console.log(photo.height, photo.width, photo.uri)
 
-
-        const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [{resize: {width: 300}}], {
+        const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [
+          {crop: {originX: 0, originY: 200, height: 600, width: photo.width}},
+          {resize: {width: 400}},
+        ], {
           format: 'png',
           base64: true
         })
@@ -95,7 +97,20 @@ export default class DeckScanner extends React.Component {
     }
 
     if (this.state.photo) {
-      return <Image source={{uri: this.state.photo}}  style={{width: 200, height: 300}} />
+      return (
+        <View style={{flex: 1, justifyContent: 'center'}}>
+          <ActivityIndicator size="large" color="#0000ff"/>
+          <Text style={{margin: '10%', fontSize: 30, textAlign: 'center'}}>
+            Attempting to locate deck within the Master Vault...
+          </Text>
+
+          <View style={{margin: '10%', textAlign: 'center'}}>
+            <Text>Deck Title:</Text>
+
+            <Image source={{uri: this.state.photo}} style={{width: '100%', height: 100}} />
+          </View>
+        </View>
+      )
     }
 
     return (
