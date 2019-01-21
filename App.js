@@ -8,6 +8,7 @@ import searchForDeckByName from './lib/searchForDeckByName'
 import Login from './components/Login'
 
 import secrets from './.secrets'
+import ApiClient from './lib/ApiClient'
 
 export default class App extends React.Component {
   state = {
@@ -122,6 +123,7 @@ export default class App extends React.Component {
 
     if (this.state.scanning) {
       return <DeckScanner
+        apiClient={new ApiClient({userEmail: this.state.user.email, googleAccessToken: this.state.googleAccessToken})}
         onRead={this.scanComplete}
       />
     }

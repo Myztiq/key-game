@@ -44,7 +44,7 @@ export default class DeckScanner extends React.Component {
         // Check if deck by ID already exists
         if (this.state.deckQrCode) {
           console.log('Check if deck already exists', this.state.deckQrCode)
-          const deck = await findDeckFromQrCode(this.state.deckQrCode)
+          const deck = await findDeckFromQrCode(this.props.apiClient, this.state.deckQrCode)
           console.log('Found deck')
           if (deck) {
             this.props.onRead({ deckName: deck.name, deckUUID: deck.uuid })
