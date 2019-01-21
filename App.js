@@ -99,9 +99,11 @@ export default class App extends React.Component {
         console.log('Deck was found!', deckSearchResults)
         deckId = `${deckSearchResults.name}#${deckSearchResults.id}`
         await this.apiClient.post('decks', {
-          qrCode: deckQRCode,
-          uuid: deckSearchResults.id,
-          name: deckSearchResults.name,
+          deck: {
+            qr_code: deckQRCode,
+            uuid: deckSearchResults.id,
+            name: deckSearchResults.name,
+          }
         })
       }
     }

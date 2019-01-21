@@ -22,26 +22,29 @@ export default class DeckScanner extends React.Component {
   }
 
   scannedBarcode = async (barcodeObject) => {
-    console.log('Scanned barcode?', barcodeObject)
     if (this.state.deckQrCode) { return }
 
     const deckQrCode = barcodeObject.data.split('/').pop()
-    console.log('Found QR code', deckQrCode)
+
     this.setState({
       deckQrCode
+    }, async () => {
+
+      // Check if deck by ID already exists
+      console.log('Check if deck already exists', deckQrCode)
+      const deck = await findDeckFromQrCode(this.props.apiClient, deckQrCode)
+      if (deck) {
+        console.log('Found deck', deck)
+        this.props.onRead({
+          deckId: deck.id,
+          deckName: deck.name,
+          deckUUID: deck.uuid,
+          deckQRCode: deckQrCode
+        })
+      }
+
     })
 
-    // Check if deck by ID already exists
-    console.log('Check if deck already exists', this.state.deckQrCode)
-    const deck = await findDeckFromQrCode(this.props.apiClient, this.state.deckQrCode)
-    if (deck) {
-      console.log('Found deck')
-      this.props.onRead({
-        deckName: deck.name,
-        deckUUID: deck.uuid,
-        deckQRCode: this.state.deckQrCode
-      })
-    }
   }
 
   takePicture = async () => {
