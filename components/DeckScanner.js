@@ -21,6 +21,8 @@ export default class DeckScanner extends React.Component {
   }
 
   scannedBarcode = (barcodeObject) => {
+    if (this.state.deckQrCode) { return }
+
     const deckQrCode = barcodeObject.data.split('/').pop()
     console.log('Found QR code', deckQrCode)
     this.setState({
