@@ -16,15 +16,15 @@ export default class App extends React.Component {
       opponentsDeck: false,
 
       user: null,
-      googleAccessToken: null
+      googleIdToken: null
   }
 
   async componentDidMount () {
-    const googleAccessToken = await SecureStore.getItemAsync('googleAccessToken')
+    const googleIdToken = await SecureStore.getItemAsync('googleIdToken')
     const user = await SecureStore.getItemAsync('user')
-    if (googleAccessToken && user) {
+    if (googleIdToken && user) {
       this.setState({
-        googleAccessToken,
+        googleIdToken,
         user: JSON.parse(user)
       })
     }
@@ -40,11 +40,11 @@ export default class App extends React.Component {
 
 
       if (result.type === 'success') {
-        await SecureStore.setItemAsync('googleAccessToken', result.accessToken);
+        await SecureStore.setItemAsync('googleIdToken', result.idToken);
         await SecureStore.setItemAsync('user', JSON.stringify(result.user));
 
-        const loginState = {user: result.user, googleAccessToken: result.accessToken}
-        console.log('Setting Login State', loginState)
+        const loginState = {user: result.user, googleIdToken: result.idToken}
+        console.log('Setting Login State', result)
         this.setState(loginState)
       } else {
         console.log("sign in cancelled")
@@ -130,7 +130,7 @@ export default class App extends React.Component {
   }
 
   render() {
-    if (!this.state.user || !this.state.googleAccessToken) {
+    if (!this.state.user || !this.state.googleIdToken) {
       return (
         <View style={styles.container}>
           <Login signIn={this.signInWithGoogleAsync} />
@@ -141,7 +141,7 @@ export default class App extends React.Component {
     if (this.state.scanning) {
       return <DeckScanner
         key={Math.random()}
-        apiClient={new ApiClient({userEmail: this.state.user.email, googleAccessToken: this.state.googleAccessToken})}
+        apiClient={new ApiClient({userEmail: this.state.user.email, googleIdToken: this.state.googleIdToken})}
         onRead={this.scanComplete}
       />
     }
