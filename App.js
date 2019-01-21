@@ -1,17 +1,41 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import {Google} from 'expo';
 import { Button } from 'react-native';
 import QRScanner from './components/QRScanner'
 import DeckScanner from './components/DeckScanner'
 import searchForDeckByName from './lib/searchForDeckByName'
+import Login from './components/Login'
+
+import secrets from './.secrets'
 
 export default class App extends React.Component {
-  constructor () {
-    super();
-    this.state = {
+  state = {
       scanning: false,
       yourDeck: false,
       opponentsDeck: false,
+
+      user: null,
+      googleAccessToken: null
+  }
+
+  signInWithGoogleAsync = async () => {
+    try {
+      const result = await Google.logInAsync({
+        androidClientId: secrets.androidClientId,
+        iosClientId: secrets.iosClientId,
+        scopes: ['profile', 'email'],
+      });
+
+      if (result.type === 'success') {
+        const loginState = {user: result.user, googleAccessToken: result.accessToken}
+        console.log('Setting Login State', loginState)
+        this.setState(loginState)
+      } else {
+        console.log("sign in cancelled")
+      }
+    } catch(e) {
+      console.error('sign in failed', e)
     }
   }
 
@@ -88,6 +112,14 @@ export default class App extends React.Component {
   }
 
   render() {
+    if (!this.state.user || !this.state.googleAccessToken) {
+      return (
+        <View style={styles.container}>
+          <Login signIn={this.signInWithGoogleAsync} />
+        </View>
+      )
+    }
+
     if (this.state.scanning) {
       return <DeckScanner
         onRead={this.scanComplete}

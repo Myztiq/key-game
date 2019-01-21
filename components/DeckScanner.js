@@ -1,11 +1,10 @@
 import React from 'react'
-import { TouchableOpacity, Text, View, Image, Vibration, ActivityIndicator } from 'react-native'
+import { ActivityIndicator, Image, Text, TouchableOpacity, Vibration, View } from 'react-native'
 
-import { Camera, Permissions, FileSystem, ImageManipulator } from 'expo'
+import { Camera, ImageManipulator, Permissions } from 'expo'
 import CameraOverlay from './CameraOverlay'
 import findDeckFromQrCode from '../lib/findDeckFromQrCode'
-
-const apiKey = 'a0a0ed9cba88957'
+import secrets from '../.secrets'
 
 export default class DeckScanner extends React.Component {
   state = {
@@ -77,7 +76,7 @@ export default class DeckScanner extends React.Component {
         const response = await fetch('https://api.ocr.space/parse/image', {
           method: 'post',
           headers: {
-            apikey: apiKey
+            apikey: secrets.ocrApiKey
           },
           body: formData
         })
