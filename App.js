@@ -35,7 +35,7 @@ export default class App extends React.Component {
 
     const deckSearchResults = await searchForDeckByName(data.deckName)
 
-    if (deckSearchResults.id) {
+    if (deckSearchResults && deckSearchResults.id) {
       console.log('Deck was found!', deckSearchResults)
       const deckId = `${deckSearchResults.name}#${deckSearchResults.id}`
       if (this.state.scanning === 'mine') {
