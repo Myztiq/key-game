@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button } from 'react-native';
 import QRScanner from './components/QRScanner'
 import DeckScanner from './components/DeckScanner'
+import searchForDeckByName from './lib/searchForDeckByName'
 
 export default class App extends React.Component {
   constructor () {
@@ -26,18 +27,24 @@ export default class App extends React.Component {
     })
   }
 
-  scanComplete = (data) => {
+  scanComplete = async (data) => {
     console.log('Scan complete', data)
-    const deckId = data.deckName;
-
     const newState = {
       scanning: false
     }
-    if (this.state.scanning === 'mine') {
-      newState.yourDeck = deckId;
-    } else {
-      newState.opponentsDeck = deckId;
+
+    const deckSearchResults = await searchForDeckByName(data.deckName)
+
+    if (deckSearchResults.id) {
+      console.log('Deck was found!', deckSearchResults)
+      const deckId = `${deckSearchResults.name}#${deckSearchResults.id}`
+      if (this.state.scanning === 'mine') {
+        newState.yourDeck = deckId;
+      } else {
+        newState.opponentsDeck = deckId;
+      }
     }
+
     this.setState(newState)
   }
 

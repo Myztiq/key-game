@@ -29,7 +29,7 @@ export default class DeckScanner extends React.Component {
         console.log(photo.height, photo.width, photo.uri)
 
 
-        const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [{resize: {width: 500}}], {
+        const newPhoto = await ImageManipulator.manipulateAsync(photo.uri, [{resize: {width: 300}}], {
           format: 'png',
           base64: true
         })
@@ -55,18 +55,15 @@ export default class DeckScanner extends React.Component {
         })
         const data = await response.json()
         console.log('Got Response')
-        console.log(data)
+        console.log('data', data)
 
-        if (data.ParsedResults.length) {
-          this.props.onRead({
-            deckName: data.ParsedResults[0].ParsedText.trim()
-          })
+        let deckName = data.ParsedResults.length && data.ParsedResults[0].ParsedText.split(/\n/)[0].trim()
+        console.log('deckname', deckName)
+
+        if (deckName) {
+          this.props.onRead({deckName})
         } else {
-          // Reset couldn't read!
-          this.setState({
-            hasTakenPhoto: false,
-            photo: null
-          })
+          this.reset()
         }
 
         Vibration.vibrate(0.5);
@@ -74,6 +71,14 @@ export default class DeckScanner extends React.Component {
         console.log('ERR', e)
       }
     }
+  }
+
+  reset = () => {
+    // Reset couldn't read!
+    this.setState({
+      hasTakenPhoto: false,
+      photo: null
+    })
   }
 
   render() {
