@@ -8,6 +8,7 @@ import Login from './components/Login'
 
 import secrets from './.secrets'
 import ApiClient from './lib/ApiClient'
+import DeckSummary from './components/DeckSummary'
 
 export default class App extends React.Component {
   state = {
@@ -115,15 +116,9 @@ export default class App extends React.Component {
 
   renderYourDeck = () => {
     if (this.state.yourDeck) {
-      return (
-        <View>
-          <Text style={{fontSize: 18}}>Your Deck:</Text>
-          <Text style={{fontSize: 14}}>{this.state.yourDeck.name}</Text>
-          <Text style={{fontSize: 14}}>{this.state.yourDeck.uuid}</Text>
-          <Text style={{fontSize: 14}}>{this.state.yourDeck.qrCode}</Text>
-        </View>
-      )
+      return <DeckSummary title='Your Deck' deck={this.state.yourDeck}/>
     }
+
     return <Button
       onPress={this.scanYourDeck}
       title="Scan Your Deck"
@@ -133,14 +128,7 @@ export default class App extends React.Component {
 
   renderOpponentsDeck = () => {
     if (this.state.opponentsDeck) {
-      return (
-        <View>
-          <Text style={{fontSize: 18}}>Opponents Deck:</Text>
-          <Text style={{fontSize: 14}}>{this.state.opponentsDeck.name}</Text>
-          <Text style={{fontSize: 14}}>{this.state.opponentsDeck.uuid}</Text>
-          <Text style={{fontSize: 14}}>{this.state.opponentsDeck.qrCode}</Text>
-        </View>
-      )
+      return <DeckSummary title='Opponents Deck' deck={this.state.opponentsDeck}/>
     }
     return <Button
       onPress={this.scanOpponentsDeck}
