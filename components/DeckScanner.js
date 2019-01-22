@@ -54,10 +54,11 @@ export default class DeckScanner extends React.Component {
           deckUUID: deck.uuid,
           deckQRCode: deckQrCode
         })
+      } else {
+        this.setState({
+          checkingQr: false
+        })
       }
-      this.setState({
-        checkingQr: false
-      })
 
     })
 
