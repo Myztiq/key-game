@@ -21,8 +21,10 @@ export default class DeckScanner extends React.Component {
     const { status } = await Permissions.askAsync(Permissions.CAMERA);
     this.setState({ hasCameraPermission: status === 'granted' });
     this.timeout = setTimeout(() => {
-      console.log('Unable to scan QR code in 10 seconds.')
-      this.props.onRead()
+      if (!this.state.deckQrCode) {
+        console.log('Unable to scan QR code in 10 seconds.')
+        this.props.onRead()
+      }
     }, 10000)
   }
 
