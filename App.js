@@ -23,14 +23,17 @@ const DeckOwnership = {
 
 export default class App extends React.Component {
   state = {
-      deckBeingScanned: false,
-      [DeckOwnership.OPPONENT]: false,
-      [DeckOwnership.OWN]: false,
+    deckBeingScanned: false,
+    [DeckOwnership.OPPONENT]: false,
+    [DeckOwnership.OWN]: false,
 
-      currentView: Views.MAIN,
+    currentView: Views.MAIN,
 
-      user: null,
-      googleIdToken: null
+    games: null,
+    decks: null,
+
+    user: null,
+    googleIdToken: null
   }
 
   apiClient = new ApiClient
@@ -85,7 +88,10 @@ export default class App extends React.Component {
     const resp = await this.apiClient.get('games')
     const body = await resp.json()
     console.log('Additional Data', body)
-    this.setState({ games: body.games })
+    this.setState({
+      games: body.games,
+      decks: body.decks,
+    })
   }
 
   scanYourDeck = () => {
@@ -218,7 +224,7 @@ export default class App extends React.Component {
               <Button onPress={this.logout} title="LOG OUT" color="red"/>
             </View>
 
-            {this.state.games ? <GamesList games={this.state.games}/> : null}
+            {this.state.games && this.state.decks ? <GamesList games={this.state.games} decks={this.state.decks}/> : null}
           </View>
         )
     }
