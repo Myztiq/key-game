@@ -81,6 +81,12 @@ export default class App extends React.Component {
 
   scanComplete = async (data) => {
     console.log('Scan complete', data)
+    if (!data) {
+      this.setState({
+        scanning: false
+      })
+      return
+    }
     const {
       deckName,
       deckQRCode,

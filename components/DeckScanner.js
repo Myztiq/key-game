@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native'
 
-import { Camera, ImageManipulator, Permissions } from 'expo'
+import { Camera, ImageManipulator, Permissions, BarCodeScanner } from 'expo'
 import CameraOverlay from './CameraOverlay'
 import findDeckFromQrCode from '../lib/findDeckFromQrCode'
 import secrets from '../.secrets'
@@ -14,20 +14,33 @@ export default class DeckScanner extends React.Component {
     hasTakenPhoto: false,
     photo: null,
     deckQrCode: null,
+    checkingQr: false
   }
 
   async componentDidMount() {
     const { status } = await Permissions.askAsync(Permissions.CAMERA);
     this.setState({ hasCameraPermission: status === 'granted' });
+    this.timeout = setTimeout(() => {
+      console.log('Unable to scan QR code in 10 seconds.')
+      this.props.onRead()
+    }, 10000)
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.timeout)
   }
 
   scannedBarcode = async (barcodeObject) => {
+    console.log('Barcode found', barcodeObject)
     if (this.state.deckQrCode) { return }
 
     const deckQrCode = barcodeObject.data.split('/').pop()
 
+    console.log('Deck QR Code', deckQrCode)
+
     this.setState({
-      deckQrCode
+      deckQrCode,
+      checkingQr: true
     }, async () => {
 
       // Check if deck by ID already exists
@@ -42,6 +55,9 @@ export default class DeckScanner extends React.Component {
           deckQRCode: deckQrCode
         })
       }
+      this.setState({
+        checkingQr: false
+      })
 
     })
 
@@ -151,13 +167,37 @@ export default class DeckScanner extends React.Component {
       )
     }
 
+    if (!this.state.deckQrCode || this.state.checkingQr) {
+      return <BarCodeScanner
+        onBarCodeScanned={this.scannedBarcode}
+        style={{flex: 1}}
+      >
+        <TouchableOpacity
+          style={{flex: 1}}
+          onPress={this.takePicture}>
+          <View style={{flex: 3}}>
+            <CameraOverlay/>
+          </View>
+          {this.state.checkingQr &&
+            <Text style={{ fontSize: 30, color: 'white', textAlign: 'center', flex: 1 }}>
+              Checking QR Code
+            </Text>
+          }
+          {!this.state.checkingQr &&
+            <Text style={{ fontSize: 30, color: 'white', textAlign: 'center', flex: 1 }}>
+              Scanning for QR Code
+            </Text>
+          }
+        </TouchableOpacity>
+      </BarCodeScanner>
+    }
+
     return (
       <View style={{flex: 1}}>
         <Camera
           ref={ref => { this.camera = ref }}
           style={{flex: 1}}
           type={Camera.Constants.Type.back}
-          onBarCodeScanned={this.scannedBarcode}
         >
           <TouchableOpacity
             style={{flex: 1}}
@@ -165,16 +205,9 @@ export default class DeckScanner extends React.Component {
             <View style={{flex: 3}}>
               <CameraOverlay/>
             </View>
-            {this.state.deckQrCode &&
-              <Text style={{fontSize: 30, color: 'white', textAlign: 'center', flex: 1}}>
-                Tap to take picture
-              </Text>
-            }
-            {!this.state.deckQrCode &&
-              <Text style={{fontSize: 30, color: 'white', textAlign: 'center', flex: 1}}>
-                Scanning for QR Code
-              </Text>
-            }
+            <Text style={{fontSize: 30, color: 'white', textAlign: 'center', flex: 1}}>
+              Tap to take picture
+            </Text>
           </TouchableOpacity>
         </Camera>
       </View>
