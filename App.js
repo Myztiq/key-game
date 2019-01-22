@@ -1,20 +1,31 @@
-import React from 'react';
-import { StyleSheet, Text, View, Vibration } from 'react-native';
-import {Google, SecureStore} from 'expo';
-import { Button } from 'react-native';
+import React from 'react'
+import { Button, StyleSheet, Vibration, View } from 'react-native'
+import { Google, SecureStore } from 'expo'
 import DeckScanner from './components/DeckScanner'
-import searchForDeckByName from './lib/searchForDeckByName'
+
 import Login from './components/Login'
 
 import secrets from './.secrets'
 import ApiClient from './lib/ApiClient'
 import DeckSummary from './components/DeckSummary'
 
+const Views = {
+  MAIN: 'MAIN',
+  DECK_SCANNER: 'DECK_SCANNER'
+}
+
+const DeckOwnership = {
+  OWN: 'OWN_DECK',
+  OPPONENT: 'OPPONENT_DECK',
+}
+
 export default class App extends React.Component {
   state = {
-      scanning: false,
-      yourDeck: false,
-      opponentsDeck: false,
+      deckBeingScanned: false,
+      [DeckOwnership.OPPONENT]: false,
+      [DeckOwnership.OWN]: false,
+
+      currentView: Views.MAIN,
 
       user: null,
       googleIdToken: null
@@ -69,24 +80,28 @@ export default class App extends React.Component {
 
   scanYourDeck = () => {
     this.setState({
-      scanning: 'mine',
+      deckBeingScanned: DeckOwnership.OWN,
+      currentView: Views.DECK_SCANNER
     })
   }
 
   scanOpponentsDeck = () => {
     this.setState({
-      scanning: 'opponent',
+      deckBeingScanned: DeckOwnership.OPPONENT,
+      currentView: Views.DECK_SCANNER
     })
   }
 
   scanComplete = async (deck) => {
     Vibration.vibrate(0.5)
 
-    const newState = { scanning: false }
+    const newState = {
+      deckBeingScanned: false,
+      currentView: Views.MAIN
+    }
 
     if (deck) {
-      const deckOwner = this.state.scanning === 'mine' ? 'yourDeck' : 'opponentsDeck'
-      newState[deckOwner] = deck
+      newState[this.state.deckBeingScanned] = deck
     }
 
     this.setState(newState)
@@ -95,8 +110,8 @@ export default class App extends React.Component {
   registerGame = (isWin) => {
     const body = {
       game: {
-        deck_uuid: this.state.yourDeck.uuid,
-        opponent_deck_uuid: this.state.opponentsDeck.uuid,
+        deck_uuid: this.state[DeckOwnership.OWN].uuid,
+        opponent_deck_uuid: this.state[DeckOwnership.OPPONENT].uuid,
         win: isWin
       }
     }
@@ -108,15 +123,16 @@ export default class App extends React.Component {
 
   clearDeckStates = () => {
     this.setState({
-      scanning: false,
-      yourDeck: false,
-      opponentsDeck: false,
+      currentView: Views.MAIN,
+      deckBeingScanned: false,
+      [DeckOwnership.OWN]: false,
+      [DeckOwnership.OPPONENT]: false,
     })
   }
 
   renderYourDeck = () => {
-    if (this.state.yourDeck) {
-      return <DeckSummary title='Your Deck' deck={this.state.yourDeck}/>
+    if (this.state[DeckOwnership.OWN]) {
+      return <DeckSummary title='Your Deck' deck={this.state[DeckOwnership.OWN]}/>
     }
 
     return <Button
@@ -127,8 +143,8 @@ export default class App extends React.Component {
   }
 
   renderOpponentsDeck = () => {
-    if (this.state.opponentsDeck) {
-      return <DeckSummary title='Opponents Deck' deck={this.state.opponentsDeck}/>
+    if (this.state[DeckOwnership.OPPONENT]) {
+      return <DeckSummary title='Opponents Deck' deck={this.state[DeckOwnership.OPPONENT]}/>
     }
     return <Button
       onPress={this.scanOpponentsDeck}
@@ -151,41 +167,43 @@ export default class App extends React.Component {
       )
     }
 
-    if (this.state.scanning) {
-      return <DeckScanner
-        apiClient={this.apiClient}
-        onRead={this.scanComplete}
-      />
-    }
+    switch (this.state.currentView) {
+      case 'DECK_SCANNER':
+        return <DeckScanner
+          apiClient={this.apiClient}
+          onRead={this.scanComplete}
+        />
 
-    return (
-      <View style={styles.container}>
-        <View style={styles.panel}>
-          {this.renderYourDeck()}
-          {this.renderOpponentsDeck()}
-        </View>
-        {this.state.opponentsDeck && this.state.yourDeck &&
-          <View style={styles.panel}>
+      case 'MAIN':
+      default:
+        return (
+          <View style={styles.container}>
+            <View style={styles.panel}>
+              {this.renderYourDeck()}
+              {this.renderOpponentsDeck()}
+            </View>
+            {this.state[DeckOwnership.OPPONENT] && this.state[DeckOwnership.OWN] &&
+            <View style={styles.panel}>
+              <Button
+                onPress={() => this.registerGame(true)}
+                title="I Won"
+                style={styles.selection}
+              />
+              <Button
+                onPress={() => this.registerGame(false)}
+                title="I Lost"
+                style={styles.selection}
+              />
+            </View>
+            }
             <Button
-              onPress={() => this.registerGame(true)}
-              title="I Won"
-              style={styles.selection}
-            />
-            <Button
-              onPress={() => this.registerGame(false)}
-              title="I Lost"
-              style={styles.selection}
+              onPress={this.logout}
+              title="LOG OUT"
+              color="red"
             />
           </View>
-        }
-        <Button
-          // style={{flex: 1}}
-          onPress={this.logout}
-          title="LOG OUT"
-          color="red"
-        />
-      </View>
-    );
+        )
+    }
   }
 }
 
