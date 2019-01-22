@@ -8,10 +8,12 @@ import Login from './components/Login'
 import secrets from './.secrets'
 import ApiClient from './lib/ApiClient'
 import DeckSummary from './components/DeckSummary'
+import GamesList from './components/GamesList'
 
 const Views = {
   MAIN: 'MAIN',
-  DECK_SCANNER: 'DECK_SCANNER'
+  DECK_SCANNER: 'DECK_SCANNER',
+  REGISTER_GAME: 'REGISTER_GAME',
 }
 
 const DeckOwnership = {
@@ -39,6 +41,7 @@ export default class App extends React.Component {
         await SecureStore.setItemAsync('googleIdToken', this.state.googleIdToken);
         await SecureStore.setItemAsync('user', JSON.stringify(this.state.user));
         this.apiClient.login({ userEmail: this.state.user.email, googleIdToken: this.state.googleIdToken })
+          .then(this.fetchAdditionalUserData)
 
       } else {
         await SecureStore.deleteItemAsync('googleIdToken');
@@ -76,6 +79,13 @@ export default class App extends React.Component {
     } catch(e) {
       console.error('sign in failed', e)
     }
+  }
+
+  fetchAdditionalUserData = async () => {
+    const resp = await this.apiClient.get('games')
+    const body = await resp.json()
+    console.log('Additional Data', body)
+    this.setState({ games: body.games })
   }
 
   scanYourDeck = () => {
@@ -168,14 +178,13 @@ export default class App extends React.Component {
     }
 
     switch (this.state.currentView) {
-      case 'DECK_SCANNER':
+      case Views.DECK_SCANNER:
         return <DeckScanner
           apiClient={this.apiClient}
           onRead={this.scanComplete}
         />
 
-      case 'MAIN':
-      default:
+      case Views.REGISTER_GAME:
         return (
           <View style={styles.container}>
             <View style={styles.panel}>
@@ -196,11 +205,20 @@ export default class App extends React.Component {
               />
             </View>
             }
-            <Button
-              onPress={this.logout}
-              title="LOG OUT"
-              color="red"
-            />
+            <Button onPress={() => this.setState({currentView: Views.MAIN})} title="< Back" color="red"/>
+          </View>
+        )
+
+      case Views.MAIN:
+      default:
+        return (
+          <View style={styles.container}>
+            <View>
+              <Button onPress={() => this.setState({currentView: Views.REGISTER_GAME})} title="Register New Game"/>
+              <Button onPress={this.logout} title="LOG OUT" color="red"/>
+            </View>
+
+            {this.state.games ? <GamesList games={this.state.games}/> : null}
           </View>
         )
     }
