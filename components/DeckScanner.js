@@ -5,6 +5,7 @@ import { Camera, ImageManipulator, Permissions, BarCodeScanner } from 'expo'
 import CameraOverlay from './CameraOverlay'
 import findDeckFromQrCode from '../lib/findDeckFromQrCode'
 import secrets from '../.secrets'
+import searchForDeckByName from '../lib/searchForDeckByName'
 
 const BYPASS_OCR = true;
 
@@ -13,7 +14,7 @@ export default class DeckScanner extends React.Component {
     hasCameraPermission: null,
     hasTakenPhoto: false,
     photo: null,
-    deckQrCode: null,
+    qrCode: null,
     checkingQr: false
   }
 
@@ -21,7 +22,7 @@ export default class DeckScanner extends React.Component {
     const { status } = await Permissions.askAsync(Permissions.CAMERA);
     this.setState({ hasCameraPermission: status === 'granted' });
     this.timeout = setTimeout(() => {
-      if (!this.state.deckQrCode) {
+      if (!this.state.qrCode) {
         console.log('Unable to scan QR code in 10 seconds.')
         this.props.onRead()
       }
@@ -33,41 +34,34 @@ export default class DeckScanner extends React.Component {
   }
 
   scannedBarcode = async (barcodeObject) => {
-    console.log('Barcode found', barcodeObject)
-    if (this.state.deckQrCode) { return }
+    if (this.state.qrCode) { return }
 
-    const deckQrCode = barcodeObject.data.split('/').pop()
-
-    console.log('Deck QR Code', deckQrCode)
+    const qrCode = barcodeObject.data.split('/').pop()
 
     this.setState({
-      deckQrCode,
+      qrCode,
       checkingQr: true
     }, async () => {
 
       // Check if deck by ID already exists
-      console.log('Check if deck already exists', deckQrCode)
-      const deck = await findDeckFromQrCode(this.props.apiClient, deckQrCode)
+      const deck = await findDeckFromQrCode(this.props.apiClient, qrCode)
+
       if (deck) {
-        console.log('Found deck', deck)
-        this.props.onRead({
-          deckId: deck.id,
-          deckName: deck.name,
-          deckUUID: deck.uuid,
-          deckQRCode: deckQrCode
-        })
+        this.props.onRead(
+          await this.buildCompleteDeckObject({
+            method: 'BARCODE', deck: { name: deck.name, uuid: deck.uuid, qrCode: qrCode }
+          })
+        )
       } else {
         this.setState({
           checkingQr: false
         })
       }
-
     })
-
   }
 
   takePicture = async () => {
-    if (!this.camera || !this.state.deckQrCode) {
+    if (!this.camera || !this.state.qrCode) {
       return
     }
 
@@ -93,7 +87,7 @@ export default class DeckScanner extends React.Component {
         photo: newPhoto.uri
       })
 
-      let deckName = 'King of Westworth'
+      let name = 'King of Westworth'
       if (!BYPASS_OCR) {
         const formData = new FormData();
         formData.append('file', {
@@ -112,24 +106,40 @@ export default class DeckScanner extends React.Component {
           body: formData
         })
         const data = await response.json()
-        console.log('Got Response')
-        console.log('data', data)
 
-        deckName = data.ParsedResults.length && data.ParsedResults[0].ParsedText.split(/\n/)[0].trim()
-        console.log('deckname', deckName)
+        name = data.ParsedResults.length && data.ParsedResults[0].ParsedText.split(/\n/)[0].trim()
       }
 
-      if (deckName) {
-        this.setState({deckName})
-        this.props.onRead({
-          deckName,
-          deckQRCode: this.state.deckQrCode,
-        })
+      if (name) {
+        this.setState({name})
+        this.props.onRead(
+          await this.buildCompleteDeckObject({
+            method: 'OCR',
+            deck: {
+              name,
+              qrCode: this.state.qrCode,
+            }
+          })
+        )
       } else {
         this.reset()
       }
     } catch (e) {
       console.log('ERR', e)
+    }
+  }
+
+  buildCompleteDeckObject = async ({ method, deck }) => {
+    switch (method) {
+      case 'OCR':
+        const deckSearchResults = await searchForDeckByName(deck.name)
+        return deckSearchResults && deckSearchResults.id ? { qr_code: deck.qrCode, uuid: deckSearchResults.id, name: deckSearchResults.name } : null
+
+      case 'BARCODE':
+        return deck
+
+      default:
+        return null
     }
   }
 
@@ -157,20 +167,20 @@ export default class DeckScanner extends React.Component {
         <View style={{flex: 1, justifyContent: 'center'}}>
           <ActivityIndicator size="large" color="#0000ff"/>
           <Text style={{margin: '10%', fontSize: 30, textAlign: 'center'}}>
-            {this.state.deckName ? `Attempting to locate "${this.state.deckName}" within the Master Vault...` : `Attempting to read deck name...`}
+            {this.state.name ? `Attempting to locate "${this.state.name}" within the Master Vault...` : `Attempting to read deck name...`}
           </Text>
 
           <View style={{margin: '10%', textAlign: 'center'}}>
             <Text>Deck Title:</Text>
 
             <Image source={{uri: this.state.photo}} style={{width: '100%', height: 100}} />
-            <Text>{this.state.deckName}</Text>
+            <Text>{this.state.name}</Text>
           </View>
         </View>
       )
     }
 
-    if (!this.state.deckQrCode || this.state.checkingQr) {
+    if (!this.state.qrCode || this.state.checkingQr) {
       return <BarCodeScanner
         onBarCodeScanned={this.scannedBarcode}
         style={{flex: 1}}

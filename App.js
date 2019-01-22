@@ -57,10 +57,9 @@ export default class App extends React.Component {
 
       if (result.type === 'success') {
         const loginState = {user: result.user, googleIdToken: result.idToken}
-        console.log('Setting Login State', result)
         this.setState(loginState)
       } else {
-        console.log("sign in cancelled")
+        console.error("sign in cancelled")
       }
     } catch(e) {
       console.error('sign in failed', e)
@@ -79,68 +78,51 @@ export default class App extends React.Component {
     })
   }
 
-  scanComplete = async (data) => {
-    console.log('Scan complete', data)
-    if (!data) {
-      this.setState({
-        scanning: false
-      })
-      return
-    }
-    const {
-      deckName,
-      deckQRCode,
-      deckUUID
-    } = data;
-    const newState = {
-      scanning: false
-    }
+  scanComplete = async (deck) => {
+    Vibration.vibrate(0.5)
 
-    let deckId = null
-    if (deckUUID) {
-      deckId = `${deckName}#${deckUUID}`
-    } else {
-      const deckSearchResults = await searchForDeckByName(deckName)
-      if (deckSearchResults && deckSearchResults.id) {
-        console.log('Deck was found!', deckSearchResults)
-        deckId = `${deckSearchResults.name}#${deckSearchResults.id}`
-        await this.apiClient.post('decks', {
-          deck: {
-            qr_code: deckQRCode,
-            uuid: deckSearchResults.id,
-            name: deckSearchResults.name,
-          }
-        })
-      }
-    }
+    const newState = { scanning: false }
 
-    if (deckId) {
-      Vibration.vibrate(0.5);
-      if (this.state.scanning === 'mine') {
-        newState.yourDeck = deckId;
-      } else {
-        newState.opponentsDeck = deckId;
-      }
-    } else {
-      // TODO: Handle case where we couldn't find deck by name or QR code.
+    if (deck) {
+      const deckOwner = this.state.scanning === 'mine' ? 'yourDeck' : 'opponentsDeck'
+      newState[deckOwner] = deck
     }
 
     this.setState(newState)
   }
 
-  pickWinner = (winner) => {
-    return () => {
-      console.log('WINNER!', winner)
-      this.setState({
-        yourDeck: false,
-        opponentsDeck: false,
-      })
+  registerGame = (isWin) => {
+    const body = {
+      game: {
+        deck_uuid: this.state.yourDeck.uuid,
+        opponent_deck_uuid: this.state.opponentsDeck.uuid,
+        win: isWin
+      }
     }
+    console.log('payload', body, this.state)
+    this.apiClient.post('games', body)
+
+    this.clearDeckStates()
+  }
+
+  clearDeckStates = () => {
+    this.setState({
+      scanning: false,
+      yourDeck: false,
+      opponentsDeck: false,
+    })
   }
 
   renderYourDeck = () => {
     if (this.state.yourDeck) {
-      return <Text>Your Deck: {this.state.yourDeck}</Text>
+      return (
+        <View>
+          <Text style={{fontSize: 18}}>Your Deck:</Text>
+          <Text style={{fontSize: 14}}>{this.state.yourDeck.name}</Text>
+          <Text style={{fontSize: 14}}>{this.state.yourDeck.uuid}</Text>
+          <Text style={{fontSize: 14}}>{this.state.yourDeck.qrCode}</Text>
+        </View>
+      )
     }
     return <Button
       onPress={this.scanYourDeck}
@@ -151,7 +133,14 @@ export default class App extends React.Component {
 
   renderOpponentsDeck = () => {
     if (this.state.opponentsDeck) {
-      return <Text>Opponents Deck: {this.state.opponentsDeck}</Text>
+      return (
+        <View>
+          <Text style={{fontSize: 18}}>Opponents Deck:</Text>
+          <Text style={{fontSize: 14}}>{this.state.opponentsDeck.name}</Text>
+          <Text style={{fontSize: 14}}>{this.state.opponentsDeck.uuid}</Text>
+          <Text style={{fontSize: 14}}>{this.state.opponentsDeck.qrCode}</Text>
+        </View>
+      )
     }
     return <Button
       onPress={this.scanOpponentsDeck}
@@ -176,7 +165,6 @@ export default class App extends React.Component {
 
     if (this.state.scanning) {
       return <DeckScanner
-        key={Math.random()}
         apiClient={this.apiClient}
         onRead={this.scanComplete}
       />
@@ -191,12 +179,12 @@ export default class App extends React.Component {
         {this.state.opponentsDeck && this.state.yourDeck &&
           <View style={styles.panel}>
             <Button
-              onPress={this.pickWinner('me')}
+              onPress={() => this.registerGame(true)}
               title="I Won"
               style={styles.selection}
             />
             <Button
-              onPress={this.pickWinner('them')}
+              onPress={() => this.registerGame(false)}
               title="I Lost"
               style={styles.selection}
             />
