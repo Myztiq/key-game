@@ -133,7 +133,11 @@ export default class DeckScanner extends React.Component {
     switch (method) {
       case 'OCR':
         const deckSearchResults = await searchForDeckByName(deck.name)
-        return deckSearchResults && deckSearchResults.id ? { qr_code: deck.qrCode, uuid: deckSearchResults.id, name: deckSearchResults.name } : null
+        const completedDeck = deckSearchResults && deckSearchResults.id ? { qr_code: deck.qrCode, uuid: deckSearchResults.id, name: deckSearchResults.name } : null
+        if (completedDeck) {
+          this.props.apiClient.post('decks', completedDeck)
+        }
+        return completedDeck
 
       case 'BARCODE':
         return deck
