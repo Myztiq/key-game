@@ -113,7 +113,7 @@ export default class App extends React.Component {
 
     const newState = {
       deckBeingScanned: false,
-      currentView: Views.MAIN
+      currentView: Views.REGISTER_GAME
     }
 
     if (deck) {
